@@ -1,0 +1,33 @@
+package test
+
+import (
+	"encoding/json"
+	"io/ioutil"
+)
+
+type config struct {
+	driverName       string
+	driverDataSource string
+}
+
+type allConfig struct {
+	config
+}
+
+var conf *allConfig
+
+const confFile = "./test/config.json"
+
+func init() {
+	var cjson config
+	cfile, err := ioutil.ReadFile(confFile)
+	if err != nil {
+		panic("fail to load configuration file")
+	}
+
+	if err := json.Unmarshal(cfile, &cjson); err != nil {
+		panic(err)
+	}
+
+	conf = &allConfig{config: cjson}
+}
