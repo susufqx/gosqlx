@@ -93,11 +93,6 @@ func (p *operation) UpdateMap(ctx context.Context, tableName string, qm map[stri
 }
 
 // Delete : delete the data by primary keys by default
-func (p *operation) Delete(ctx context.Context, baseModel BaseModelInterface) error {
-	return Delete(ctx, p.p, baseModel)
-}
-
-// DeleteMap : delete according own's qm options
-func (p *operation) DeleteMap(ctx context.Context, tableName string, qm map[string]interface{}) error {
-	return DeleteMap(ctx, p.p, tableName, qm)
+func (p *operation) Delete(ctx context.Context, options ...interface{}) error {
+	return Delete(ctx, p.p, options...)
 }

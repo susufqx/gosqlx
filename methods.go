@@ -3,6 +3,7 @@ package gosqlx
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -51,14 +52,44 @@ func UpdateMap(ctx context.Context, p PreparerContext, tableName string, qm map[
 }
 
 // Delete : delete the data by primary keys by default
-func Delete(ctx context.Context, p PreparerContext, baseModel BaseModelInterface) error {
-	_, pkMap, _ := collectKV(ctx, baseModel)
-	return delete(ctx, p, baseModel.GetTableName(), pkMap)
-}
+func Delete(ctx context.Context, p PreparerContext, options ...interface{}) error {
+	optionsLen := len(options)
+	if optionsLen < 1 {
+		return errors.New("parameters error")
+	}
 
-// DeleteMap : delete according own's qm options
-func DeleteMap(ctx context.Context, p PreparerContext, tableName string, qm map[string]interface{}) error {
-	return delete(ctx, p, tableName, qm)
+	baseModel := options[0]
+	bm, ok := baseModel.(BaseModelInterface)
+	if !ok {
+		return errors.New("parameters error")
+	}
+
+	_, pkMap, _ := collectKV(ctx, bm)
+
+	var mapOptions map[string]interface{}
+	if optionsLen == 2 {
+		mapOptions, ok = options[1].(map[string]interface{})
+		if !ok {
+			return errors.New("parameters error")
+		}
+
+		pkMap = util.MapJoin(pkMap, mapOptions)
+	} else if optionsLen > 2 {
+		if optionsLen/2 == 0 {
+			return errors.New("new pairs of key-value, but got key not value")
+		}
+
+		for i := 1; i < optionsLen; i = i + 2 {
+			key, ok := options[i].(string)
+			if !ok {
+				return errors.New("need string, but got others")
+			}
+
+			pkMap[key] = options[i+1]
+		}
+	}
+
+	return delete(ctx, p, bm.GetTableName(), pkMap)
 }
 
 func save(ctx context.Context, p PreparerContext, tableName string, allMap, noPkMap, pkMap map[string]interface{}) error {

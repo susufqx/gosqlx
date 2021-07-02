@@ -18,3 +18,18 @@ func CamelCaseToSnackCase(a string) string {
 
 	return strings.ToLower(string(s))
 }
+
+func MapJoin(m ...map[string]interface{}) map[string]interface{} {
+	if len(m) == 0 {
+		return nil
+	}
+
+	res := map[string]interface{}{}
+	for _, mi := range m {
+		for k, v := range mi {
+			res[k] = v
+		}
+	}
+
+	return res
+}
