@@ -3,11 +3,11 @@ package test
 import "time"
 
 type Test struct {
-	Id         int    `gosqlx:"pKey"`
-	Typ        string `gosqlx:"column:type"`
+	Id         int    `others:"pKey"`
+	Typ        string `db:"type"`
 	Name       string
-	CreateTime time.Time `gosqlx:"column:create_time"`
-	UpdateTime time.Time `gosqlx:"column:update_time"`
+	CreateTime time.Time `db:"create_time"`
+	UpdateTime time.Time `db:"update_time"`
 }
 
 func (t *Test) GetTableName() string {

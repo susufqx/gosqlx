@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -14,10 +15,10 @@ var db *gosqlx.DB
 
 func init() {
 	var err error
-	var t *testing.T
-	db, err = gosqlx.Open(conf.driverName, conf.driverDataSource)
+	NewConfig()
+	db, err = gosqlx.Open(conf.DriverName, conf.DriverDataSource)
 	if err != nil {
-		t.Errorf("errors : %v", err)
+		fmt.Printf("errors : %v\n", err)
 	}
 }
 

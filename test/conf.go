@@ -6,8 +6,8 @@ import (
 )
 
 type config struct {
-	driverName       string
-	driverDataSource string
+	DriverName       string
+	DriverDataSource string
 }
 
 type allConfig struct {
@@ -16,9 +16,9 @@ type allConfig struct {
 
 var conf *allConfig
 
-const confFile = "./test/config.json"
+const confFile = "./config.json"
 
-func init() {
+func NewConfig() {
 	var cjson config
 	cfile, err := ioutil.ReadFile(confFile)
 	if err != nil {

@@ -89,7 +89,7 @@ func save(ctx context.Context, p PreparerContext, tableName string, allMap, noPk
 		k++
 	}
 
-	st := fmt.Sprintf("INSERT INTO %s ("+strings.Join(keys[:allLen], ",")+
+	st := fmt.Sprintf("INSERT INTO %s("+strings.Join(keys[:allLen], ",")+
 		") VALUES ("+strings.Join(dollarSigns[:allLen], ",")+
 		") ON conflict("+strings.Join(keys[allLen:], ",")+
 		") DO UPDATE SET "+strings.Join(dollarSigns[allLen:], ","),
@@ -285,44 +285,36 @@ func collectKV(ctx context.Context, baseModel BaseModelInterface) (allMap, pkMap
 	noPkMap = map[string]interface{}{}
 
 	for i := 0; i < num; i++ {
+		var k string
+
 		fd := typ.Field(i)
 		vl := val.Field(i)
-		tag := fd.Tag.Get("github.com/susufqx/gosqlx")
-		if tag == "" {
-			allMap[util.CamelCaseToSnackCase(fd.Name)] = vl.Interface()
-		} else {
-			vs := strings.Split(tag, ";")
-			pKey := false
-			var k string
-			dColumn := false
+		tagDB := fd.Tag.Get("db")
+		tagOthers := fd.Tag.Get("others")
+		pKey := false
 
+		if tagDB == "" {
+			k = util.CamelCaseToSnackCase(fd.Name)
+			allMap[k] = vl.Interface()
+		} else {
+			k = tagDB
+			allMap[k] = vl.Interface()
+		}
+
+		if tagOthers != "" {
+			vs := strings.Split(tagOthers, ";")
 			for _, vss := range vs {
-				tagElem := strings.Split(vss, ":")
-				if tagElem[0] == "pKey" {
+				if vss == "pKey" {
 					pKey = true
 				}
 			}
 
-			for _, vss := range vs {
-				tagElem := strings.Split(vss, ":")
-				if tagElem[0] == "column" {
-					dColumn = true
-					k = util.CamelCaseToSnackCase(tagElem[1])
-					allMap[k] = vl.Interface()
-				}
-			}
+		}
 
-			if !dColumn {
-				k = util.CamelCaseToSnackCase(fd.Name)
-				allMap[k] = vl.Interface()
-
-			}
-
-			if pKey {
-				pkMap[k] = allMap[k]
-			} else {
-				noPkMap[k] = allMap[k]
-			}
+		if pKey {
+			pkMap[k] = allMap[k]
+		} else {
+			noPkMap[k] = allMap[k]
 		}
 	}
 
