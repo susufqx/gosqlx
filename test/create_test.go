@@ -52,3 +52,21 @@ func TestSave(t *testing.T) {
 		t.Errorf("errors : %v", err)
 	}
 }
+
+func TestNoCommit(t *testing.T) {
+	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
+	testModelOne, testModeltwo := Test{}, Test{Id: 1, Typ: "xsssssssx", Name: "nxxxxxxxn"}
+	testModelOne.Typ = "test_no_commited"
+	testModelOne.Name = "hello"
+
+	tx, err := db.BeginTx()
+	err = tx.Save(ctx, &testModelOne)
+	if err != nil {
+		t.Errorf("errors : %v", err)
+	}
+
+	tx.Save(ctx, &testModeltwo)
+	if err != nil {
+		t.Errorf("errors : %v", err)
+	}
+}
