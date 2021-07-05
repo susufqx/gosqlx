@@ -181,7 +181,13 @@ func read(ctx context.Context, p PreparerContext, baseModels interface{}, kv map
 		i++
 	}
 
-	st := fmt.Sprintf("SELECT * FROM %s WHERE "+strings.Join(signs, " AND "), tableName)
+	var st string
+	if kv == nil {
+		st = fmt.Sprintf("SELECT * FROM %s", tableName)
+	} else {
+		st = fmt.Sprintf("SELECT * FROM %s WHERE "+strings.Join(signs, " AND "), tableName)
+	}
+
 	if orderStr != nil && orderSort != nil {
 		st = st + " ORDER BY " + *orderStr + " " + *orderSort
 	}
@@ -354,6 +360,10 @@ func collectKV(ctx context.Context, baseModel BaseModelInterface) (allMap, pkMap
 
 func getTableName(ctx context.Context, baseModels interface{}) string {
 	getType := reflect.TypeOf(baseModels).Elem()
+	if getType.Kind() == reflect.Slice {
+		getType = getType.Elem()
+	}
+
 	vp := reflect.New(getType)
 
 	met, ok := getType.MethodByName("GetTableName")
