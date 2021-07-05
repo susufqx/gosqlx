@@ -73,8 +73,9 @@ func Delete(ctx context.Context, p PreparerContext, options ...interface{}) erro
 			return errors.New("parameters error")
 		}
 
-		pkMap = util.MapJoin(pkMap, mapOptions)
+		pkMap = mapOptions //util.MapJoin(pkMap, mapOptions)
 	} else if optionsLen > 2 {
+		pkMap = make(map[string]interface{})
 		if optionsLen/2 == 0 {
 			return errors.New("new pairs of key-value, but got key not value")
 		}
