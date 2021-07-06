@@ -89,10 +89,10 @@ func (p *operation) Update(ctx context.Context, baseModel BaseModelInterface) er
 	return Update(ctx, p.p, baseModel)
 }
 
-// UpdateMap : map is to record the update key-values
-func (p *operation) UpdateMap(ctx context.Context, tableName string, qm map[string]interface{}, cm map[string]interface{}) error {
-	return UpdateMap(ctx, p.p, tableName, qm, cm)
-}
+// // UpdateMap : map is to record the update key-values
+// func (p *operation) UpdateMap(ctx context.Context, tableName string, qm map[string]interface{}, cm map[string]interface{}) error {
+// 	return UpdateMap(ctx, p.p, tableName, qm, cm)
+// }
 
 // Delete : delete the data by primary keys by default
 func (p *operation) Delete(ctx context.Context, options ...interface{}) error {
