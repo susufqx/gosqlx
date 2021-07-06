@@ -12,6 +12,16 @@ import (
 	"github.com/susufqx/gosqlx/util"
 )
 
+// func Model(ctx context.Context, p operation, baseModel BaseModelInterface) {
+// 	if !util.IsZeroOfUnderlyingType(baseModel) {
+// 		p.model = baseModel
+// 	}
+// }
+
+// func Where(ctx context.Context, p operation, options ...interface{}) {
+
+// }
+
 // Read : find by the options
 func Read(ctx context.Context, p PreparerContext, baseModels interface{}, options map[string]interface{}) error {
 	return read(ctx, p, baseModels, options, nil, nil, nil, nil)
@@ -41,14 +51,92 @@ func Create(ctx context.Context, p PreparerContext, baseModel BaseModelInterface
 }
 
 // Update : update the data without judging the model's existance
-func Update(ctx context.Context, p PreparerContext, baseModel BaseModelInterface) error {
-	_, pkMap, noPkMap := collectKV(ctx, baseModel)
-	return update(ctx, p, baseModel.GetTableName(), noPkMap, pkMap)
-}
+// func Update(ctx context.Context, p PreparerContext, options ...interface{}) error {
+// 	optionsLen := len(options)
+// 	if optionsLen < 1 {
+// 		return errors.New("parameter error")
+// 	}
 
-// UpdateMap : map is to record the update key-values
-func UpdateMap(ctx context.Context, p PreparerContext, tableName string, qm map[string]interface{}, cm map[string]interface{}) error {
-	return update(ctx, p, tableName, cm, qm)
+// 	baseModel := options[0]
+// 	bm, ok := baseModel.(BaseModelInterface)
+// 	if !ok {
+// 		return errors.New("parameters error")
+// 	}
+
+// 	_, pkMap, noPkMap := collectKV(ctx, bm)
+// 	var mapOptions map[string]interface{}
+// 	if optionsLen == 2 {
+// 		mapOptions, ok = options[1].(map[string]interface{})
+// 		if !ok {
+// 			return errors.New("parameters error")
+// 		}
+
+// 		pkMap = mapOptions //util.MapJoin(pkMap, mapOptions)
+// 	} else if optionsLen > 2 {
+// 		pkMap = make(map[string]interface{})
+// 		if optionsLen/2 == 0 {
+// 			return errors.New("new pairs of key-value, but got key not value")
+// 		}
+
+// 		for i := 1; i < optionsLen; i = i + 2 {
+// 			key, ok := options[i].(string)
+// 			if !ok {
+// 				return errors.New("need string, but got others")
+// 			}
+
+// 			pkMap[key] = options[i+1]
+// 		}
+// 	}
+
+// 	return update(ctx, p, bm.GetTableName(), noPkMap, pkMap)
+// }
+
+// Update : type Model struct {}
+// Situation 1: Update(ctx, p, &Model{})
+// Situation 2: Update(ctx, p, &Model{}, updateMap)
+// Situation 3: Update(ctx, p, &Model{}, updateMap, otherOptionsMap)
+// if &Model{} is zero value of the struct, no use primary key to update
+// otherwise use primary keys and otherOptionsMap to update together
+func Update(ctx context.Context, p PreparerContext, options ...interface{}) error {
+	optionsLen := len(options)
+	if optionsLen < 1 {
+		return errors.New("parameter error")
+	}
+
+	var ok bool
+	baseModel := options[0]
+	bm, ok := baseModel.(BaseModelInterface)
+	if !ok {
+		return errors.New("parameters error")
+	}
+
+	var opMap, upMap = map[string]interface{}{}, map[string]interface{}{}
+	if !util.IsZeroOfUnderlyingType(bm) {
+		_, opMap, upMap = collectKV(ctx, bm)
+	}
+
+	if optionsLen == 2 {
+		upMap, ok = options[1].(map[string]interface{})
+		if !ok {
+			return errors.New("parameters error")
+		}
+	} else if optionsLen == 3 {
+		upMap, ok = options[1].(map[string]interface{})
+		if !ok {
+			return errors.New("parameters error")
+		}
+
+		exOpMap, ok := options[2].(map[string]interface{})
+		if !ok {
+			return errors.New("parameters error")
+		}
+
+		opMap = util.MapJoin(opMap, exOpMap)
+	} else if optionsLen != 1 {
+		return errors.New("parameter error")
+	}
+
+	return update(ctx, p, bm.GetTableName(), upMap, opMap)
 }
 
 // Delete : delete the data by primary keys by default

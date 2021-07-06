@@ -1,6 +1,9 @@
 package util
 
-import "strings"
+import (
+	"reflect"
+	"strings"
+)
 
 func CamelCaseToSnackCase(a string) string {
 	s := []rune{}
@@ -32,4 +35,8 @@ func MapJoin(m ...map[string]interface{}) map[string]interface{} {
 	}
 
 	return res
+}
+
+func IsZeroOfUnderlyingType(x interface{}) bool {
+	return reflect.DeepEqual(x, reflect.Zero(reflect.TypeOf(x)).Interface())
 }

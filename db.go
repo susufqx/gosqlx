@@ -9,6 +9,8 @@ import (
 
 type operation struct {
 	p PreparerContext
+	// options *string
+	// model   BaseModelInterface
 }
 
 // DB : database struct
