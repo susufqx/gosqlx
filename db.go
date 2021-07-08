@@ -8,9 +8,10 @@ import (
 )
 
 type operation struct {
-	p PreparerContext
-	// options *string
-	// model   BaseModelInterface
+	p         PreparerContext
+	options   map[string]interface{}
+	model     BaseModelInterface
+	tableName string
 }
 
 // DB : database struct
@@ -86,15 +87,18 @@ func (p *operation) Create(ctx context.Context, baseModel BaseModelInterface) er
 
 // Update : update the data without judging the model's existance
 func (p *operation) Update(ctx context.Context, baseModel BaseModelInterface) error {
-	return Update(ctx, p.p, baseModel)
+	return Update(ctx, p, baseModel)
 }
-
-// // UpdateMap : map is to record the update key-values
-// func (p *operation) UpdateMap(ctx context.Context, tableName string, qm map[string]interface{}, cm map[string]interface{}) error {
-// 	return UpdateMap(ctx, p.p, tableName, qm, cm)
-// }
 
 // Delete : delete the data by primary keys by default
 func (p *operation) Delete(ctx context.Context, options ...interface{}) error {
 	return Delete(ctx, p.p, options...)
+}
+
+func (p *operation) Model(ctx context.Context, baseModel BaseModelInterface) {
+	Model(ctx, p, baseModel)
+}
+
+func (p *operation) Where(ctx context.Context, options ...interface{}) {
+	Where(ctx, p, options)
 }

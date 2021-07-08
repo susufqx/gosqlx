@@ -12,15 +12,37 @@ import (
 	"github.com/susufqx/gosqlx/util"
 )
 
-// func Model(ctx context.Context, p operation, baseModel BaseModelInterface) {
-// 	if !util.IsZeroOfUnderlyingType(baseModel) {
-// 		p.model = baseModel
-// 	}
-// }
+// Model : set model to operation
+func Model(ctx context.Context, p *operation, baseModel BaseModelInterface) {
+	p.model = baseModel
+	p.tableName = baseModel.GetTableName()
+}
 
-// func Where(ctx context.Context, p operation, options ...interface{}) {
+// Where : add select options after where in sql query
+// 1. use map[string]interface{}
+// 2. use like this: k1, v1, k2, v2 ...
+func Where(ctx context.Context, p *operation, options ...interface{}) {
+	m := make(map[string]interface{})
+	if len(options) == 1 {
+		var ok bool
+		m, ok = options[0].(map[string]interface{})
+		if !ok {
+			return
+		}
+	} else if len(options)/2 == 0 {
+		for i := 0; i < len(options); i = i + 2 {
+			key, ok := options[i].(string)
+			if !ok {
+				m = make(map[string]interface{})
+				break
+			}
 
-// }
+			m[key] = options[i+1]
+		}
+	}
+
+	p.options = m
+}
 
 // Read : find by the options
 func Read(ctx context.Context, p PreparerContext, baseModels interface{}, options map[string]interface{}) error {
@@ -97,88 +119,76 @@ func Create(ctx context.Context, p PreparerContext, baseModel BaseModelInterface
 // Situation 3: Update(ctx, p, &Model{}, updateMap, otherOptionsMap)
 // if &Model{} is zero value of the struct, no use primary key to update
 // otherwise use primary keys and otherOptionsMap to update together
-func Update(ctx context.Context, p PreparerContext, options ...interface{}) error {
+func Update(ctx context.Context, p *operation, options ...interface{}) error {
+	defer zeroValue(p)
+
+	var ok bool
+	var tableName = p.tableName
+	var baseModel = p.model
+	if baseModel == nil {
+		return errors.New("need Model method first")
+	}
+
 	optionsLen := len(options)
 	if optionsLen < 1 {
 		return errors.New("parameter error")
-	}
-
-	var ok bool
-	baseModel := options[0]
-	bm, ok := baseModel.(BaseModelInterface)
-	if !ok {
-		return errors.New("parameters error")
 	}
 
 	var opMap, upMap = map[string]interface{}{}, map[string]interface{}{}
-	if !util.IsZeroOfUnderlyingType(bm) {
-		_, opMap, upMap = collectKV(ctx, bm)
+	if !util.IsZeroOfUnderlyingType(baseModel) {
+		_, opMap, upMap = collectKV(ctx, baseModel)
 	}
 
-	if optionsLen == 2 {
+	if p.options != nil {
+		opMap = util.MapJoin(p.options)
+	}
+
+	if len(opMap) < 1 {
+		return errors.New("need options after where in sql statement")
+	}
+
+	if optionsLen == 1 {
 		upMap, ok = options[1].(map[string]interface{})
 		if !ok {
 			return errors.New("parameters error")
 		}
-	} else if optionsLen == 3 {
-		upMap, ok = options[1].(map[string]interface{})
-		if !ok {
-			return errors.New("parameters error")
-		}
+	} else if optionsLen/2 == 0 {
+		for i := 0; i < optionsLen; i = i + 2 {
+			var key string
+			key, ok = options[i].(string)
+			if !ok {
+				upMap = map[string]interface{}{}
+				break
+			}
 
-		exOpMap, ok := options[2].(map[string]interface{})
-		if !ok {
-			return errors.New("parameters error")
+			upMap[key] = options[i+1]
 		}
-
-		opMap = util.MapJoin(opMap, exOpMap)
-	} else if optionsLen != 1 {
-		return errors.New("parameter error")
 	}
 
-	return update(ctx, p, bm.GetTableName(), upMap, opMap)
+	return update(ctx, p.p, tableName, upMap, opMap)
 }
 
 // Delete : delete the data by primary keys by default
-func Delete(ctx context.Context, p PreparerContext, options ...interface{}) error {
-	optionsLen := len(options)
-	if optionsLen < 1 {
-		return errors.New("parameters error")
+func Delete(ctx context.Context, p *operation) error {
+	defer zeroValue(p)
+
+	var tableName = p.tableName
+	var baseModel = p.model
+
+	var opMap = map[string]interface{}{}
+	if !util.IsZeroOfUnderlyingType(baseModel) {
+		_, opMap, _ = collectKV(ctx, baseModel)
 	}
 
-	baseModel := options[0]
-	bm, ok := baseModel.(BaseModelInterface)
-	if !ok {
-		return errors.New("parameters error")
+	if p.options != nil {
+		opMap = util.MapJoin(p.options)
 	}
 
-	_, pkMap, _ := collectKV(ctx, bm)
-
-	var mapOptions map[string]interface{}
-	if optionsLen == 2 {
-		mapOptions, ok = options[1].(map[string]interface{})
-		if !ok {
-			return errors.New("parameters error")
-		}
-
-		pkMap = mapOptions //util.MapJoin(pkMap, mapOptions)
-	} else if optionsLen > 2 {
-		pkMap = make(map[string]interface{})
-		if optionsLen/2 == 0 {
-			return errors.New("new pairs of key-value, but got key not value")
-		}
-
-		for i := 1; i < optionsLen; i = i + 2 {
-			key, ok := options[i].(string)
-			if !ok {
-				return errors.New("need string, but got others")
-			}
-
-			pkMap[key] = options[i+1]
-		}
+	if len(opMap) < 1 {
+		return errors.New("need options after where in sql statement")
 	}
 
-	return delete(ctx, p, bm.GetTableName(), pkMap)
+	return delete(ctx, p.p, tableName, opMap)
 }
 
 func save(ctx context.Context, p PreparerContext, tableName string, allMap, noPkMap, pkMap map[string]interface{}) error {
@@ -462,4 +472,10 @@ func getTableName(ctx context.Context, baseModels interface{}) string {
 
 	r := met.Func.Call([]reflect.Value{reflect.Indirect(vp)})
 	return r[0].String()
+}
+
+func zeroValue(p *operation) {
+	p.model = nil
+	p.tableName = ""
+	p.options = nil
 }
